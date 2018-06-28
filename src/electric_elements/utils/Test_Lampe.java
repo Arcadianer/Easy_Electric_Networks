@@ -19,14 +19,12 @@ public class Test_Lampe extends Device {
     }
 
     @Override
-    public void when_power_update_layer_1() {
+    public void when_power_update() {
+
 
     }
 
-    @Override
-    protected void final_shutdown_layer2() {
 
-    }
 
 
 }

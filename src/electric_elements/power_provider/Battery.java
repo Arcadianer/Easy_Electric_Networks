@@ -23,15 +23,8 @@ public class Battery extends Generator {
 
     }
 
-    @Override
-    public void when_power_update_layer_2() {
 
-    }
 
-    @Override
-    protected void final_shutdown_layer3() {
-
-    }
 
     public boolean isCharge() {
         return charge;
@@ -56,7 +49,7 @@ public class Battery extends Generator {
     public boolean set_chaging_to(double watt) {
         if (!(charger == null)) {
 
-            if (watt <= 0) {
+            if (watt >= 0) {
                 charge = false;
 
                 charger.turn_off();

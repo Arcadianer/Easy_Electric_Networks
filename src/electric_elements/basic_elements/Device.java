@@ -4,6 +4,8 @@ import sim_systems.ObjectDB;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 
@@ -21,6 +23,7 @@ public abstract class Device
     private boolean is_running=false;
     private static int class_counter=0;
     private ExecutorService device_thread_pool;
+    protected Thread_Pool_Factory factory;
 
     private final Runnable device_standart_runnable=new Runnable() {
         @Override
@@ -39,13 +42,15 @@ public abstract class Device
             }
         }
     };
-    private final Runnable device_power_update= () -> when_power_update_layer_1();
-    private Thread power_update=new  Thread(device_power_update);
+    private final Runnable device_power_update= () -> when_power_update();
+    private Thread power_update=new Thread(device_power_update);
 
     protected Device(double standart_drain, double extra_drain) {
         ObjectDB.add(this);
         log=ObjectDB.log;
-        device_thread_pool=Executors.newCachedThreadPool();
+        this.Name="Device "+class_counter;
+        factory=new Thread_Pool_Factory(Name);
+        device_thread_pool=Executors.newCachedThreadPool(factory);
         on_off=false;
         active=false;
         current_drain=0;
@@ -54,12 +59,15 @@ public abstract class Device
         class_counter++;
         this.Name="Device "+class_counter;
 
+
     }
     public Device(String Name,double standart_drain, double extra_drain) {
 
         ObjectDB.add(this);
         log=ObjectDB.log;
-        device_thread_pool = Executors.newCachedThreadPool();
+        factory=new Thread_Pool_Factory(Name);
+        device_thread_pool = Executors.newCachedThreadPool(factory);
+
         on_off=false;
         active=false;
         current_drain=0;
@@ -76,9 +84,8 @@ public abstract class Device
 
     public void turn_on(){
         if(!on_off){
-    on_off=true;
+            on_off=true;
             log.fine("turned on");
-
     update_drain();
         }
     }
@@ -105,7 +112,7 @@ public abstract class Device
     private void set_active(){
         if(!active){
         active=true;
-        device_thread_pool=Executors.newCachedThreadPool();
+        device_thread_pool=Executors.newCachedThreadPool(factory);
         device_thread_pool.execute(device_standart_runnable);
         }
     }
@@ -128,7 +135,9 @@ public abstract class Device
         if(on_off){
             current_drain=standart_drain;
             double toadd=extra_drain*percent_extra_drain;
-            current_drain=current_drain+toadd;
+
+
+            current_drain=current_drain+Math.round(toadd*100)/100;
         }
             if(is_attached()){
             attached_powerGrid.update();
@@ -167,14 +176,15 @@ public abstract class Device
     }
     public void check_power(){
 
-       power_update.run();
         if(isOn_off()){
         if(attached_powerGrid.get_available_energy()<0){
             set_inactive();
+
         }else{
             set_active();
         }
         }
+        power_update.run();
     }
 
     public boolean isOn_off() {
@@ -189,14 +199,14 @@ public abstract class Device
         Name = name;
     }
 
-    protected abstract void when_power_update_layer_1();
+    protected abstract void when_power_update();
 
     public double get_max_power_draw(){
         return standart_drain+extra_drain;
     }
     public boolean set_to_draw(double watt){
-        watt=-(watt);
-        if((standart_drain<=watt)&&(watt>=(standart_drain+extra_drain))){
+
+        if((standart_drain>=watt)&&(watt>=(standart_drain+extra_drain))){
             if(watt==standart_drain){
                 set_percent_extra(0);
             }else{
@@ -231,15 +241,38 @@ public abstract class Device
                 ", current_drain=" + current_drain +
                 '}';
     }
-    public void final_shutdown_layer_1(){
+
+    public void finalize_device() throws Throwable {
+        super.finalize();
         turn_off();
         if(!(device_thread_pool==null))
-        device_thread_pool.shutdownNow();
-        final_shutdown_layer2();
+            device_thread_pool.shutdownNow();
     }
-    protected abstract void final_shutdown_layer2();
+
+
+
     protected Power_Grid getAttached_powerGrid(){
         return attached_powerGrid;
+    }
+
+
+
+    protected class Thread_Pool_Factory implements ThreadFactory{
+        ThreadGroup group;
+        private AtomicInteger th_id;
+
+        public Thread_Pool_Factory(String name) {
+            group=new ThreadGroup(name);
+        }
+
+        @Override
+
+        public Thread newThread(Runnable r) {
+
+            Thread to_create=new Thread(group,r);
+
+            return to_create;
+        }
     }
 
 

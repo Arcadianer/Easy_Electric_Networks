@@ -13,6 +13,7 @@ public abstract class Generator extends Device {
     private final Runnable turn_off_runnable= () -> {
         try {
             Thread.sleep(timer_time);
+            System.out.println("turned off after "+timer_time);
             turn_off();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -44,7 +45,8 @@ public abstract class Generator extends Device {
     protected abstract void when_inactive();
 
     @Override
-    public void when_power_update_layer_1() {
+    public void when_power_update() {
+        if(isOn_off())
         if (!dont_draw) {
             if(turn_off_timer==null){
                 try {
@@ -53,9 +55,10 @@ public abstract class Generator extends Device {
                     e.printStackTrace();
                 }
             }
+            if(turn_off_timer!=null)
            turn_off_timer.stop();
            turn_off_timer=null;
-           turn_off_timer=new Thread(turn_off_runnable);
+
             long stop_time = System.currentTimeMillis();
             long diff_time = stop_time - time;
             time = stop_time;
@@ -66,26 +69,28 @@ public abstract class Generator extends Device {
             if (current_capacity < 0) {
                 turn_off();
             } else {
-                timer_time = (long) ((current_capacity / current_output) * 60 * 60);
+                timer_time = (long) ((current_capacity / current_output) * 60 * 60 *1000);
                 if (timer_time < 999999999) {
                     try {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    turn_off_timer.run();
+
+                    turn_off_timer=factory.newThread(turn_off_runnable);
+                    turn_off_timer.start();
                 }
 
             }
 
-            when_power_update_layer_2();
+
 
         }
 
 
     }
 
-    protected abstract void when_power_update_layer_2();
+
 
     public boolean add_capacity(double to_add) {
         if ((to_add > 0) && (!dont_draw)) {
@@ -121,16 +126,38 @@ public abstract class Generator extends Device {
 
     }
 
+
     public void set_watt_output(double watt) {
-        watt=-watt;
+
         set_to_draw(watt);
+    }
+    @Override
+    public boolean set_to_draw(double watt){
+
+        if((this.getStandart_drain()<=watt)&&(watt<=(this.get_max_power_draw()))){
+            if(watt==this.getStandart_drain()){
+                set_percent_extra(0);
+            }else{
+                double toset=watt/(this.get_max_power_draw());
+                set_percent_extra((float) toset);
+
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
-    protected void final_shutdown_layer2() {
+    public void finalize_device() throws Throwable {
+        super.finalize_device();
        turn_off_timer.stop();
        turn_off_timer=null;
     }
 
-    protected abstract void final_shutdown_layer3();
+    public void setDont_draw(boolean dont_draw) {
+        this.dont_draw = dont_draw;
+    }
+
+
+
 }

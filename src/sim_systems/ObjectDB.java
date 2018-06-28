@@ -17,7 +17,11 @@ public class ObjectDB {
         System.out.println("[SIMSYSTEM] init final shutdown");
         for (Device D:deviceList
              ) {
-            D.final_shutdown_layer_1();
+            try {
+                D.finalize_device();
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
 
         }
         for (Power_Grid n: POWER_GRID_LIST
