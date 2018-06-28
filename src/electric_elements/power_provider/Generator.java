@@ -122,6 +122,7 @@ public abstract class Generator extends Device {
     }
 
     public void set_watt_output(double watt) {
+        watt=-watt;
         set_to_draw(watt);
     }
 

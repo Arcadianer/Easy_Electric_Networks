@@ -1,14 +1,17 @@
 package sim_systems;
 
 import electric_elements.basic_elements.Device;
-import electric_elements.basic_elements.Network;
+import electric_elements.basic_elements.Power_Grid;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class ObjectDB {
+
+    public static Logger log;
    static final List<Device> deviceList=new ArrayList<Device>();
-   static final List<Network> networkList=new ArrayList<Network>();
+   static final List<Power_Grid> POWER_GRID_LIST =new ArrayList<Power_Grid>();
 
     public static void shutdown(){
         System.out.println("[SIMSYSTEM] init final shutdown");
@@ -17,7 +20,7 @@ public class ObjectDB {
             D.final_shutdown_layer_1();
 
         }
-        for (Network n:networkList
+        for (Power_Grid n: POWER_GRID_LIST
              ) {
             n.final_shutdown();
         }
@@ -29,8 +32,11 @@ public class ObjectDB {
         if(!deviceList.contains(toadd))
             deviceList.add(toadd);
     }
-    public static void add(Network toadd){
-        if(!networkList.contains(toadd))
-            networkList.add(toadd);
+    public static void add(Power_Grid toadd){
+        if(!POWER_GRID_LIST.contains(toadd))
+            POWER_GRID_LIST.add(toadd);
+    }
+    public static void createLogger(){
+        log=Logger.getLogger(ObjectDB.class.getName());
     }
 }

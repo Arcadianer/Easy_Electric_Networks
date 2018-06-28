@@ -1,12 +1,13 @@
 package electric_elements.basic_elements;
 
+import electric_elements.utils.Network_Status_Enum;
 import sim_systems.ObjectDB;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class Network
+public class Power_Grid
 {
    //Attribs
    private final String Name;
@@ -14,6 +15,7 @@ public class Network
     private double available_energy;
     private final ExecutorService thread_pool = Executors.newCachedThreadPool();
     private static int class_counter=0;
+    private Network_Status_Enum status;
 
     //Runnables
     private final Runnable update_runnable=new Runnable() {
@@ -25,21 +27,30 @@ public class Network
                 available_energy = available_energy + D.get_current_drain();
 
             }
-            System.out.println("Netzwerk power "+available_energy);
+
+            if(get_available_energy()>0){
+                status=Network_Status_Enum.OVERPOWERED;
+            }else if(get_available_energy()==0)
+            {
+                status=Network_Status_Enum.OK;
+            }else if(get_available_energy()<0)
+            {
+                status=Network_Status_Enum.UNDERPOWERED;
+            }
             for (Device D:attached){
                 D.check_power();
             }
         }
     };
 
-    public Network() {
+    public Power_Grid() {
         ObjectDB.add(this);
       attached=new ArrayList<Device>();
       available_energy=0;
       class_counter++;
       Name="Power Bus "+class_counter;
     }
-    public Network(String Name) {
+    public Power_Grid(String Name) {
         ObjectDB.add(this);
         attached=new ArrayList<Device>();
         available_energy=0;
@@ -112,6 +123,15 @@ public class Network
 
     return log.toString();
     }
+
+    public Network_Status_Enum getStatus() {
+        return status;
+    }
+
+    public String getName() {
+        return Name;
+    }
+
     public void final_shutdown(){
         thread_pool.shutdownNow();
     }

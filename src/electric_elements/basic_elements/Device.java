@@ -4,9 +4,12 @@ import sim_systems.ObjectDB;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
+
 
 public abstract class Device
 {
+    protected Logger log;
     private String Name;
     private boolean on_off;
     private boolean active;
@@ -14,10 +17,11 @@ public abstract class Device
     private final double standart_drain;
     private final double extra_drain;
     private double current_drain;
-    private Network attached_network;
+    private Power_Grid attached_powerGrid;
     private boolean is_running=false;
     private static int class_counter=0;
     private ExecutorService device_thread_pool;
+
     private final Runnable device_standart_runnable=new Runnable() {
         @Override
         public void run() {
@@ -36,9 +40,11 @@ public abstract class Device
         }
     };
     private final Runnable device_power_update= () -> when_power_update_layer_1();
+    private Thread power_update=new  Thread(device_power_update);
 
     protected Device(double standart_drain, double extra_drain) {
         ObjectDB.add(this);
+        log=ObjectDB.log;
         device_thread_pool=Executors.newCachedThreadPool();
         on_off=false;
         active=false;
@@ -46,11 +52,13 @@ public abstract class Device
         this.standart_drain = standart_drain;
         this.extra_drain = extra_drain;
         class_counter++;
-        this.Name="electric_elements.basic_elements.Device "+class_counter;
+        this.Name="Device "+class_counter;
+
     }
     public Device(String Name,double standart_drain, double extra_drain) {
 
         ObjectDB.add(this);
+        log=ObjectDB.log;
         device_thread_pool = Executors.newCachedThreadPool();
         on_off=false;
         active=false;
@@ -59,7 +67,9 @@ public abstract class Device
         this.extra_drain = extra_drain;
         class_counter++;
         this.Name=Name;
+
     }
+
 
     protected abstract void when_active();
     protected abstract void when_inactive();
@@ -67,17 +77,19 @@ public abstract class Device
     public void turn_on(){
         if(!on_off){
     on_off=true;
+            log.fine("turned on");
 
     update_drain();
         }
     }
     public void turn_off(){
         if(on_off){
-        on_off=true;
+        on_off=false;
+            log.fine("turned off");
     update_drain();
         }
     }
-    public void set_percent_extra(float percent_extra){
+    protected void set_percent_extra(float percent_extra){
         if((percent_extra>=0)&&(percent_extra_drain<=1)){
         percent_extra_drain=percent_extra;
         update_drain();
@@ -86,7 +98,7 @@ public abstract class Device
         }
     }
 
-    public float get_percent_extra(){
+    protected float get_percent_extra(){
         return percent_extra_drain;
     }
 
@@ -119,23 +131,23 @@ public abstract class Device
             current_drain=current_drain+toadd;
         }
             if(is_attached()){
-            attached_network.update();
+            attached_powerGrid.update();
             }
 
     }
-    public void attach(Network net){
+    public void attach(Power_Grid net){
         if(!is_attached()){
-            attached_network=net;
+            attached_powerGrid =net;
             net.attach(this);
 
         }
 
 
     }
-    public void retach(Network net){
+    public void retach(Power_Grid net){
         if((!net.is_attached_to(this)&&(is_attached()))){
             detach();
-            attached_network=net;
+            attached_powerGrid =net;
             net.attach(this);
 
 
@@ -145,19 +157,19 @@ public abstract class Device
     }
     public void detach(){
         if(is_attached()) {
-            Network temp_net=attached_network;
-            attached_network = null;
+            Power_Grid temp_net= attached_powerGrid;
+            attached_powerGrid = null;
             temp_net.detach(this);
         }
     }
     public boolean is_attached(){
-        return !(attached_network == null);
+        return !(attached_powerGrid == null);
     }
     public void check_power(){
 
-        device_thread_pool.execute(device_power_update);
+       power_update.run();
         if(isOn_off()){
-        if(attached_network.get_available_energy()<0){
+        if(attached_powerGrid.get_available_energy()<0){
             set_inactive();
         }else{
             set_active();
@@ -184,7 +196,7 @@ public abstract class Device
     }
     public boolean set_to_draw(double watt){
         watt=-(watt);
-        if(standart_drain>=watt&&watt>=(standart_drain+extra_drain)){
+        if((standart_drain<=watt)&&(watt>=(standart_drain+extra_drain))){
             if(watt==standart_drain){
                 set_percent_extra(0);
             }else{
@@ -202,11 +214,11 @@ public abstract class Device
     }
 
 
-    public double getStandart_drain() {
+    protected double getStandart_drain() {
         return standart_drain;
     }
 
-    public double getExtra_drain() {
+    protected double getExtra_drain() {
         return extra_drain;
     }
 
@@ -220,11 +232,15 @@ public abstract class Device
                 '}';
     }
     public void final_shutdown_layer_1(){
+        turn_off();
         if(!(device_thread_pool==null))
         device_thread_pool.shutdownNow();
         final_shutdown_layer2();
     }
     protected abstract void final_shutdown_layer2();
+    protected Power_Grid getAttached_powerGrid(){
+        return attached_powerGrid;
+    }
 
 
 }
