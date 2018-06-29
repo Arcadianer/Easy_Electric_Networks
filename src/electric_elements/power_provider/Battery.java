@@ -9,6 +9,11 @@ public class Battery extends Generator {
         super(max_power_output, max_power_capacity);
     }
 
+    public Battery(String name, double max_power_output, double max_power_capacity) {
+
+        super(name, max_power_output, max_power_capacity);
+    }
+
     private boolean charge = false;
     private Battery_Charger charger;
 

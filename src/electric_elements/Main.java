@@ -20,22 +20,21 @@ public class Main {
         ObjectDB.log.info("Hellu");
         Power_Grid main_power_net=new Power_Grid("Main-Power");
 
-        Battery main_batt_1=new Battery(10000,10000);
+        Battery main_batt_1 = new Battery("Main-Battery", 10000, 10000);
         //main_batt_1.setDont_draw(true);
         main_batt_1.setName("Main-Battery");
 
-        Battery secondary_batt=new Battery(100,1000);
+        Battery secondary_batt = new Battery("Backup-Battery", 100, 1000);
         secondary_batt.remove_capacity(900);
-        secondary_batt.setName("Backup-Battery");
 
 
-        Battery_Charger secondary_batt_charger=new Battery_Charger(1,9000,10000);
-        secondary_batt_charger.setName("Backup-Battery-Charger");
+        Battery_Charger secondary_batt_charger = new Battery_Charger("Backup-Battery-Charger", 1, 9000, 10000);
+
 
         Test_Lampe test_lampe=new Test_Lampe(-10,-20);
         test_lampe.setName("Lampe");
 
-        Power_Grid_Monitor monitor=new Power_Grid_Monitor();
+        Power_Grid_Monitor monitor = new Power_Grid_Monitor(5000);
         monitor.setName("Monitor");
         monitor.attach(main_power_net);
         monitor.turn_on();
@@ -43,11 +42,7 @@ public class Main {
 
         main_power_net.attach(main_batt_1);
 
-        secondary_batt.attach(main_power_net);
 
-        secondary_batt_charger.attach_battery(secondary_batt);
-
-        secondary_batt_charger.attach(main_power_net);
 
         test_lampe.attach(main_power_net);
 
@@ -56,8 +51,7 @@ public class Main {
 
 
 
-       secondary_batt.turn_on();
-        secondary_batt.set_chaging_to(-9000);
+
 
         test_lampe.turn_on();
 
@@ -65,25 +59,35 @@ public class Main {
 
         Thread destroy_something=new Thread(()->{
             try {
-                Thread.sleep(10000);
+                Thread.sleep(5000);
 
                 test_lampe.set_to_draw(-30);
 
+                Thread.sleep(5000);
+
+                secondary_batt.attach(main_power_net);
+
+                secondary_batt_charger.attach_battery(secondary_batt);
+
+                secondary_batt_charger.attach(main_power_net);
+
+                secondary_batt.turn_on();
+                secondary_batt.set_chaging_to(-9000);
 
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         });
         destroy_something.start();
+
+
         Thread.sleep(1000);
         while(true){
             Thread.sleep(1000);
             if(main_power_net.getStatus()!=Network_Status_Enum.OK){
 
                 double test=main_batt_1.get_current_drain()-main_power_net.get_available_energy();
-                main_batt_1.set_watt_output(
-                    test
-                );
+                main_batt_1.set_watt_output(test);
             }
         }
 

@@ -4,6 +4,7 @@ import sim_systems.ObjectDB;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -25,25 +26,29 @@ public abstract class Device
     private ExecutorService device_thread_pool;
     protected Thread_Pool_Factory factory;
 
-    private final Runnable device_standart_runnable=new Runnable() {
+
+    private final Runnable device_power_update= () -> when_power_update();
+
+    private final Runnable device_standart_runnable = new Runnable() {
         @Override
         public void run() {
-            if(active){
-                if(!is_running){
-                when_active();
-                is_running=true;
+            if (active) {
+                if (!is_running) {
+                    when_active();
+                    is_running = true;
                 }
-            }else{
-                if(is_running){
-                when_inactive();
-                is_running=false;
-                device_thread_pool.shutdownNow();
+            } else {
+                if (is_running) {
+                    when_inactive();
+                    is_running = false;
+
                 }
             }
         }
     };
-    private final Runnable device_power_update= () -> when_power_update();
-    private Thread power_update=new Thread(device_power_update);
+
+
+
 
     protected Device(double standart_drain, double extra_drain) {
         ObjectDB.add(this);
@@ -120,9 +125,6 @@ public abstract class Device
        if(active){
         active=false;
         device_thread_pool.execute(device_standart_runnable);
-
-
-
        }
     }
 
@@ -184,7 +186,13 @@ public abstract class Device
             set_active();
         }
         }
-        power_update.run();
+        try {
+            device_thread_pool.execute(device_power_update);
+        } catch (RejectedExecutionException e) {
+            log.warning(Name + " Thread cant be executed");
+            e.printStackTrace();
+        }
+
     }
 
     public boolean isOn_off() {
@@ -275,5 +283,7 @@ public abstract class Device
         }
     }
 
-
+    public boolean isActive() {
+        return active;
+    }
 }

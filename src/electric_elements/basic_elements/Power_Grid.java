@@ -6,6 +6,8 @@ import sim_systems.ObjectDB;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Power_Grid
 {
@@ -13,7 +15,7 @@ public class Power_Grid
    private final String Name;
     private final ArrayList<Device> attached;
     private double available_energy;
-    private final ExecutorService thread_pool = Executors.newCachedThreadPool();
+    private final ExecutorService thread_pool;
     private static int class_counter=0;
     private Network_Status_Enum status;
 
@@ -49,12 +51,14 @@ public class Power_Grid
       available_energy=0;
       class_counter++;
       Name="Power Bus "+class_counter;
+        thread_pool = Executors.newCachedThreadPool(new Thread_Pool_Factory(Name));
     }
     public Power_Grid(String Name) {
         ObjectDB.add(this);
         attached=new ArrayList<Device>();
         available_energy=0;
         this.Name=Name;
+        thread_pool = Executors.newCachedThreadPool(new Thread_Pool_Factory(Name));
         class_counter++;
     }
 
@@ -134,5 +138,23 @@ public class Power_Grid
 
     public void final_shutdown(){
         thread_pool.shutdownNow();
+    }
+
+    protected class Thread_Pool_Factory implements ThreadFactory {
+        ThreadGroup group;
+        private AtomicInteger th_id;
+
+        public Thread_Pool_Factory(String name) {
+            group = new ThreadGroup(name);
+        }
+
+        @Override
+
+        public Thread newThread(Runnable r) {
+
+            Thread to_create = new Thread(group, r);
+
+            return to_create;
+        }
     }
 }

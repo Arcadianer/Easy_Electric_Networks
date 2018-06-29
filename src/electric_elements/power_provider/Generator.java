@@ -16,7 +16,7 @@ public abstract class Generator extends Device {
             System.out.println("turned off after "+timer_time);
             turn_off();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+
         }
 
     };
@@ -38,6 +38,22 @@ public abstract class Generator extends Device {
 
     }
 
+    public Generator(String name, double max_power_output, boolean no_capacity_draw) {
+        super(name, 0, max_power_output);
+        this.max_power_capacity = 0;
+        this.current_capacity = max_power_capacity;
+        time = System.currentTimeMillis();
+        dont_draw = true;
+
+    }
+
+    public Generator(String name, double max_power_output, double max_power_capacity) {
+        super(name, 0, max_power_output);
+        this.max_power_capacity = max_power_capacity;
+        this.current_capacity = max_power_capacity;
+        time = System.currentTimeMillis();
+    }
+
 
     protected abstract void when_active();
 
@@ -52,11 +68,11 @@ public abstract class Generator extends Device {
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+
                 }
             }
             if(turn_off_timer!=null)
-           turn_off_timer.stop();
+                turn_off_timer.interrupt();
            turn_off_timer=null;
 
             long stop_time = System.currentTimeMillis();
@@ -74,7 +90,7 @@ public abstract class Generator extends Device {
                     try {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+
                     }
 
                     turn_off_timer=factory.newThread(turn_off_runnable);

@@ -12,6 +12,11 @@ public class Battery_Charger extends Device {
         this.charge_interval = charge_interval;
     }
 
+    public Battery_Charger(String name, double standart_drain, double extra_drain, long charge_interval) {
+        super(name, -standart_drain, -extra_drain);
+        this.charge_interval = charge_interval;
+    }
+
 
     private long charge_interval = 0;
     private Battery attached_battery;
